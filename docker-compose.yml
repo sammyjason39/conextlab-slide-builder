@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   conextlab-slide-builder:
     build:
@@ -15,6 +13,9 @@ services:
       - coolify
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.conextlab-chart-http.rule=Host(`chart.conextlab.ai`)"
+      - "traefik.http.routers.conextlab-chart-http.entrypoints=http"
+      - "traefik.http.routers.conextlab-chart-http.middlewares=redirect-to-https"
       - "traefik.http.routers.conextlab-chart.rule=Host(`chart.conextlab.ai`)"
       - "traefik.http.routers.conextlab-chart.entrypoints=https"
       - "traefik.http.routers.conextlab-chart.tls.certresolver=letsencrypt"
