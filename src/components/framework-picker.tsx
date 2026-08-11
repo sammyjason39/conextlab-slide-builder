@@ -20,6 +20,11 @@ const frameworks: {
     description: "Root cause analysis with cause-and-effect branches",
   },
   {
+    type: "5why",
+    label: "5-Why",
+    description: "Drill down to root cause with five why questions",
+  },
+  {
     type: "pareto",
     label: "Pareto",
     description: "80/20 rule chart with cumulative percentage",
@@ -28,6 +33,21 @@ const frameworks: {
     type: "swot",
     label: "SWOT",
     description: "Strengths, Weaknesses, Opportunities, Threats",
+  },
+  {
+    type: "scurve",
+    label: "S-Curve",
+    description: "Plan vs actual progress tracking over time",
+  },
+  {
+    type: "matrix",
+    label: "Impact-Effort",
+    description: "2x2 prioritization matrix for initiatives",
+  },
+  {
+    type: "flowchart",
+    label: "Flowchart",
+    description: "Process map with nodes and decision branches",
   },
 ];
 
@@ -44,7 +64,7 @@ export default function FrameworkPicker({
       <p className="text-sm text-muted mb-6">
         Pick the analysis framework for your slide
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {frameworks.map((fw) => (
           <button
             key={fw.type}

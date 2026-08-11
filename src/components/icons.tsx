@@ -2,6 +2,7 @@ import { FrameworkType } from "@/lib/types";
 
 export type IconMode = "emoji" | "icon" | "none";
 
+// ---- Framework Icons ----
 export function FishboneIcon({ size = 24 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -41,6 +42,60 @@ export function SWOTIcon({ size = 24 }: { size?: number }) {
   );
 }
 
+export function FiveWhyIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="5" r="2" fill="currentColor" opacity="0.2" />
+      <circle cx="12" cy="10" r="2" fill="currentColor" opacity="0.2" />
+      <circle cx="12" cy="15" r="2" fill="currentColor" opacity="0.2" />
+      <circle cx="12" cy="20" r="2" fill="currentColor" opacity="0.2" />
+      <line x1="12" y1="7" x2="12" y2="8" />
+      <line x1="12" y1="12" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12" y2="18" />
+      <path d="M12 3v0" strokeWidth="2" />
+    </svg>
+  );
+}
+
+export function SCurveIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 20 C6 20, 8 4, 12 4 C16 4, 18 20, 21 20" fill="currentColor" opacity="0.1" />
+      <path d="M3 20 C6 20, 8 4, 12 4 C16 4, 18 20, 21 20" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+      <line x1="3" y1="20" x2="21" y2="20" />
+      <line x1="3" y1="4" x2="3" y2="20" />
+    </svg>
+  );
+}
+
+export function MatrixIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="2" fill="currentColor" opacity="0.05" />
+      <line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" opacity="0.3" />
+      <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" opacity="0.3" />
+      <circle cx="6" cy="6" r="1.5" fill="currentColor" opacity="0.6" />
+      <circle cx="18" cy="6" r="1.5" fill="currentColor" opacity="0.4" />
+      <circle cx="6" cy="18" r="1.5" fill="currentColor" opacity="0.3" />
+      <circle cx="18" cy="18" r="1.5" fill="currentColor" opacity="0.5" />
+    </svg>
+  );
+}
+
+export function FlowchartIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="8" y="2" width="8" height="5" rx="2" fill="currentColor" opacity="0.15" />
+      <path d="M12 7 L12 9" />
+      <polygon points="8,9 16,9 14,14 10,14" fill="currentColor" opacity="0.15" />
+      <path d="M12 14 L12 16" />
+      <rect x="8" y="16" width="8" height="5" rx="2" fill="currentColor" opacity="0.15" />
+    </svg>
+  );
+}
+
+// ---- SWOT Quadrant Icons ----
 export function StrengthsIcon({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -85,6 +140,27 @@ export function ThreatsIcon({ size = 20 }: { size?: number }) {
   );
 }
 
+// ---- Icon Resolver ----
+const emojiMap: Record<string, string> = {
+  fishbone: "🐟",
+  pareto: "📊",
+  swot: "🎯",
+  "5why": "❓",
+  scurve: "📈",
+  matrix: "🔲",
+  flowchart: "🔄",
+};
+
+const iconMap: Record<string, React.FC<{ size?: number }>> = {
+  fishbone: FishboneIcon,
+  pareto: ParetoIcon,
+  swot: SWOTIcon,
+  "5why": FiveWhyIcon,
+  scurve: SCurveIcon,
+  matrix: MatrixIcon,
+  flowchart: FlowchartIcon,
+};
+
 export function getFrameworkIcon(
   framework: FrameworkType,
   mode: IconMode,
@@ -92,18 +168,28 @@ export function getFrameworkIcon(
 ): React.ReactNode {
   if (mode === "none") return null;
   if (mode === "emoji") {
-    switch (framework) {
-      case "fishbone": return <span style={{ fontSize: size }}>🐟</span>;
-      case "pareto": return <span style={{ fontSize: size }}>📊</span>;
-      case "swot": return <span style={{ fontSize: size }}>🎯</span>;
-    }
+    const emoji = emojiMap[framework];
+    if (emoji) return <span style={{ fontSize: size }}>{emoji}</span>;
+    return null;
   }
-  switch (framework) {
-    case "fishbone": return <FishboneIcon size={size} />;
-    case "pareto": return <ParetoIcon size={size} />;
-    case "swot": return <SWOTIcon size={size} />;
-  }
+  const Icon = iconMap[framework];
+  if (Icon) return <Icon size={size} />;
+  return null;
 }
+
+const swotEmojiMap: Record<string, string> = {
+  strengths: "💪",
+  weaknesses: "⚠️",
+  opportunities: "🚀",
+  threats: "🛡️",
+};
+
+const swotIconMap: Record<string, React.FC<{ size?: number }>> = {
+  strengths: StrengthsIcon,
+  weaknesses: WeaknessesIcon,
+  opportunities: OpportunitiesIcon,
+  threats: ThreatsIcon,
+};
 
 export function getSwotQuadrantIcon(
   quadrant: "strengths" | "weaknesses" | "opportunities" | "threats",
@@ -112,17 +198,11 @@ export function getSwotQuadrantIcon(
 ): React.ReactNode {
   if (mode === "none") return null;
   if (mode === "emoji") {
-    switch (quadrant) {
-      case "strengths": return <span style={{ fontSize: size }}>💪</span>;
-      case "weaknesses": return <span style={{ fontSize: size }}>⚠️</span>;
-      case "opportunities": return <span style={{ fontSize: size }}>🚀</span>;
-      case "threats": return <span style={{ fontSize: size }}>🛡️</span>;
-    }
+    const emoji = swotEmojiMap[quadrant];
+    if (emoji) return <span style={{ fontSize: size }}>{emoji}</span>;
+    return null;
   }
-  switch (quadrant) {
-    case "strengths": return <StrengthsIcon size={size} />;
-    case "weaknesses": return <WeaknessesIcon size={size} />;
-    case "opportunities": return <OpportunitiesIcon size={size} />;
-    case "threats": return <ThreatsIcon size={size} />;
-  }
+  const Icon = swotIconMap[quadrant];
+  if (Icon) return <Icon size={size} />;
+  return null;
 }

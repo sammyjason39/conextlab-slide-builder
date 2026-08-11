@@ -23,6 +23,14 @@ export default function AIInput({ framework, onResult }: AIInputProps) {
       "Paste your data here...\n\nExample:\nCustomer complaints this month:\n- Late delivery: 45 cases\n- Wrong item: 23 cases\n- Damaged package: 15 cases\n- Poor communication: 8 cases\n- Billing error: 5 cases",
     swot:
       "Paste your analysis notes here...\n\nExample:\nOur new product launch:\nStrengths: strong brand, experienced team, unique features\nWeaknesses: limited budget, short timeline\nOpportunities: growing market, competitor gaps\nThreats: economic uncertainty, new regulations",
+    "5why":
+      "Paste your problem description here...\n\nExample:\nCustomer churn increased 30% this quarter. We noticed most churning customers cite poor onboarding experience. The onboarding team was recently reduced, and the new hire training program was cut.",
+    scurve:
+      "Paste your project progress data here...\n\nExample:\nProject Alpha 6-month plan: Jan 5%, Feb 15%, Mar 30%, Apr 55%, May 80%, Jun 100%. Actual progress: Jan 3%, Feb 12%, Mar 25%, Apr 45%.",
+    matrix:
+      "Paste your initiatives list here...\n\nExample:\nQ3 priorities:\n- Redesign landing page (high impact, medium effort)\n- Fix checkout bug (high impact, low effort)\n- Update FAQ page (low impact, low effort)\n- Migrate database (high impact, high effort)",
+    flowchart:
+      "Paste your process description here...\n\nExample:\nCustomer onboarding: Start with signup form, then verify email. If email verified, create account and send welcome email. If not verified, send reminder and wait 24h.",
   };
 
   const handleGenerate = async () => {

@@ -7,6 +7,10 @@ import {
   FishboneData,
   ParetoData,
   SWOTData,
+  FiveWhyData,
+  SCurveData,
+  MatrixData,
+  FlowchartData,
   FrameworkData,
   ValidationError,
   TemplateConfig,
@@ -23,11 +27,19 @@ import AIInput from "@/components/ai-input";
 import FishboneForm from "@/components/forms/fishbone-form";
 import ParetoForm from "@/components/forms/pareto-form";
 import SWOTForm from "@/components/forms/swot-form";
+import FiveWhyForm from "@/components/forms/fivewhy-form";
+import SCurveForm from "@/components/forms/scurve-form";
+import MatrixForm from "@/components/forms/matrix-form";
+import FlowchartForm from "@/components/forms/flowchart-form";
 import TemplateSelector from "@/components/template-selector";
 import ColorCustomizer from "@/components/color-customizer";
 import FishbonePreview from "@/components/preview/fishbone-preview";
 import ParetoPreview from "@/components/preview/pareto-preview";
 import SWOTPreview from "@/components/preview/swot-preview";
+import FiveWhyPreview from "@/components/preview/fivewhy-preview";
+import SCurvePreview from "@/components/preview/scurve-preview";
+import MatrixPreview from "@/components/preview/matrix-preview";
+import FlowchartPreview from "@/components/preview/flowchart-preview";
 import SlideShell from "@/components/slide/slide-shell";
 import DownloadButton from "@/components/download-button";
 
@@ -60,6 +72,62 @@ function getEmptyData(framework: FrameworkType): FrameworkData {
         opportunities: [""],
         threats: [""],
       } as SWOTData;
+    case "5why":
+      return {
+        problemStatement: "",
+        whys: [
+          { id: "why-1", question: "", answer: "" },
+          { id: "why-2", question: "", answer: "" },
+          { id: "why-3", question: "", answer: "" },
+          { id: "why-4", question: "", answer: "" },
+          { id: "why-5", question: "", answer: "" },
+        ],
+      } as FiveWhyData;
+    case "scurve":
+      return {
+        title: "",
+        plan: [
+          { month: "Jan", value: 0 },
+          { month: "Feb", value: 0 },
+          { month: "Mar", value: 0 },
+          { month: "Apr", value: 0 },
+          { month: "May", value: 0 },
+          { month: "Jun", value: 0 },
+        ],
+        actual: [
+          { month: "Jan", value: 0 },
+          { month: "Feb", value: 0 },
+          { month: "Mar", value: 0 },
+          { month: "Apr", value: 0 },
+          { month: "May", value: 0 },
+          { month: "Jun", value: 0 },
+        ],
+      } as SCurveData;
+    case "matrix":
+      return {
+        title: "",
+        items: [
+          { id: "m-1", name: "", impact: 5, effort: 5 },
+          { id: "m-2", name: "", impact: 5, effort: 5 },
+          { id: "m-3", name: "", impact: 5, effort: 5 },
+          { id: "m-4", name: "", impact: 5, effort: 5 },
+        ],
+      } as MatrixData;
+    case "flowchart":
+      return {
+        title: "",
+        nodes: [
+          { id: "n-1", label: "", type: "start" },
+          { id: "n-2", label: "", type: "process" },
+          { id: "n-3", label: "", type: "decision" },
+          { id: "n-4", label: "", type: "end" },
+        ],
+        edges: [
+          { from: "n-1", to: "n-2", label: "" },
+          { from: "n-2", to: "n-3", label: "" },
+          { from: "n-3", to: "n-4", label: "Yes" },
+        ],
+      } as FlowchartData;
   }
 }
 
@@ -71,6 +139,14 @@ function getTitle(data: FrameworkData, framework: FrameworkType): string {
       return (data as ParetoData).title || "Pareto Chart";
     case "swot":
       return (data as SWOTData).title || "SWOT Analysis";
+    case "5why":
+      return (data as FiveWhyData).problemStatement || "5-Why Analysis";
+    case "scurve":
+      return (data as SCurveData).title || "S-Curve";
+    case "matrix":
+      return (data as MatrixData).title || "Impact-Effort Matrix";
+    case "flowchart":
+      return (data as FlowchartData).title || "Flowchart";
   }
 }
 
@@ -137,6 +213,35 @@ function HomeInner() {
           [s.strengths, s.weaknesses, s.opportunities, s.threats].some(
             (arr) => arr.length > 0 && arr.some((item) => item.trim())
           )
+        );
+      }
+      case "5why": {
+        const d = data as FiveWhyData;
+        return (
+          d.problemStatement.trim().length > 0 ||
+          d.whys.some((w) => w.question.trim() || w.answer.trim())
+        );
+      }
+      case "scurve": {
+        const d = data as SCurveData;
+        return (
+          d.title.trim().length > 0 ||
+          d.plan.some((p) => p.value > 0) ||
+          d.actual.some((a) => a.value > 0)
+        );
+      }
+      case "matrix": {
+        const d = data as MatrixData;
+        return (
+          d.title.trim().length > 0 ||
+          d.items.some((i) => i.name.trim())
+        );
+      }
+      case "flowchart": {
+        const d = data as FlowchartData;
+        return (
+          d.title.trim().length > 0 ||
+          d.nodes.some((n) => n.label.trim())
         );
       }
     }
@@ -225,6 +330,124 @@ function HomeInner() {
   const hasValidationErrors = validationErrors.length > 0;
   const canDownload = data !== null && !hasValidationErrors;
 
+  const renderForm = () => {
+    if (!framework) return null;
+    switch (framework) {
+      case "fishbone":
+        return (
+          <FishboneForm
+            data={data as FishboneData}
+            onChange={handleDataChange}
+            onValidation={setValidationErrors}
+          />
+        );
+      case "pareto":
+        return (
+          <ParetoForm
+            data={data as ParetoData}
+            onChange={handleDataChange}
+            onValidation={setValidationErrors}
+          />
+        );
+      case "swot":
+        return (
+          <SWOTForm
+            data={data as SWOTData}
+            onChange={handleDataChange}
+            onValidation={setValidationErrors}
+          />
+        );
+      case "5why":
+        return (
+          <FiveWhyForm
+            data={data as FiveWhyData}
+            onChange={handleDataChange}
+            onValidation={setValidationErrors}
+          />
+        );
+      case "scurve":
+        return (
+          <SCurveForm
+            data={data as SCurveData}
+            onChange={handleDataChange}
+            onValidation={setValidationErrors}
+          />
+        );
+      case "matrix":
+        return (
+          <MatrixForm
+            data={data as MatrixData}
+            onChange={handleDataChange}
+            onValidation={setValidationErrors}
+          />
+        );
+      case "flowchart":
+        return (
+          <FlowchartForm
+            data={data as FlowchartData}
+            onChange={handleDataChange}
+            onValidation={setValidationErrors}
+          />
+        );
+    }
+  };
+
+  const renderPreview = () => {
+    if (!framework || !data || !template) return null;
+    switch (framework) {
+      case "fishbone":
+        return (
+          <FishbonePreview
+            data={data as FishboneData}
+            template={template}
+          />
+        );
+      case "pareto":
+        return (
+          <ParetoPreview
+            data={data as ParetoData}
+            template={template}
+          />
+        );
+      case "swot":
+        return (
+          <SWOTPreview
+            data={data as SWOTData}
+            template={template}
+            iconMode={iconMode}
+          />
+        );
+      case "5why":
+        return (
+          <FiveWhyPreview
+            data={data as FiveWhyData}
+            template={template}
+          />
+        );
+      case "scurve":
+        return (
+          <SCurvePreview
+            data={data as SCurveData}
+            template={template}
+          />
+        );
+      case "matrix":
+        return (
+          <MatrixPreview
+            data={data as MatrixData}
+            template={template}
+          />
+        );
+      case "flowchart":
+        return (
+          <FlowchartPreview
+            data={data as FlowchartData}
+            template={template}
+          />
+        );
+    }
+  };
+
   return (
     <main className="min-h-screen bg-surface">
       {/* Top bar */}
@@ -303,29 +526,7 @@ function HomeInner() {
                   onResult={handleAIResult}
                 />
               ) : (
-                <>
-                  {framework === "fishbone" && (
-                    <FishboneForm
-                      data={data as FishboneData}
-                      onChange={handleDataChange}
-                      onValidation={setValidationErrors}
-                    />
-                  )}
-                  {framework === "pareto" && (
-                    <ParetoForm
-                      data={data as ParetoData}
-                      onChange={handleDataChange}
-                      onValidation={setValidationErrors}
-                    />
-                  )}
-                  {framework === "swot" && (
-                    <SWOTForm
-                      data={data as SWOTData}
-                      onChange={handleDataChange}
-                      onValidation={setValidationErrors}
-                    />
-                  )}
-                </>
+                renderForm()
               )}
             </section>
 
@@ -400,25 +601,7 @@ function HomeInner() {
                   title={getTitle(data, framework)}
                   template={template}
                 >
-                  {framework === "fishbone" && (
-                    <FishbonePreview
-                      data={data as FishboneData}
-                      template={template}
-                    />
-                  )}
-                  {framework === "pareto" && (
-                    <ParetoPreview
-                      data={data as ParetoData}
-                      template={template}
-                    />
-                  )}
-                  {framework === "swot" && (
-                    <SWOTPreview
-                      data={data as SWOTData}
-                      template={template}
-                      iconMode={iconMode}
-                    />
-                  )}
+                  {renderPreview()}
                 </SlideShell>
               </section>
             )}
@@ -442,9 +625,9 @@ function HomeInner() {
               Select a framework to get started
             </h2>
             <p className="text-muted text-sm max-w-md mx-auto">
-              Pick Fishbone, Pareto, or SWOT above. Fill in your data manually
+              Pick from 7 frameworks above. Fill in your data manually
               or use AI to extract it from your notes. Customize the look, then
-              download as PDF.
+              download as PNG or PDF.
             </p>
           </div>
         )}

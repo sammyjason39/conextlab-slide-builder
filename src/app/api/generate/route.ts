@@ -7,6 +7,10 @@ import { validateFrameworkData } from "@/lib/validation";
 const MAX_INPUT_LENGTH = 10000;
 const API_TIMEOUT_MS = 30000;
 
+const validFrameworks: FrameworkType[] = [
+  "fishbone", "pareto", "swot", "5why", "scurve", "matrix", "flowchart",
+];
+
 function computeConfidence(
   framework: FrameworkType,
   data: FrameworkData
@@ -32,16 +36,44 @@ function computeConfidence(
     }
     case "swot": {
       const s = data as {
-        strengths: string[];
-        weaknesses: string[];
-        opportunities: string[];
-        threats: string[];
+        strengths: string[]; weaknesses: string[];
+        opportunities: string[]; threats: string[];
       };
       const filled = [s.strengths, s.weaknesses, s.opportunities, s.threats].filter(
         (arr) => arr.length > 0 && arr.some((item: string) => item.trim())
       ).length;
       if (filled < 2) return "low";
       if (filled < 4) return "medium";
+      return "high";
+    }
+    case "5why": {
+      const d = data as { problemStatement: string; whys: { question: string; answer: string }[] };
+      if (!d.problemStatement) return "low";
+      const filled = d.whys.filter((w) => w.answer.trim()).length;
+      if (filled < 2) return "low";
+      if (filled < 4) return "medium";
+      return "high";
+    }
+    case "scurve": {
+      const d = data as { plan: { value: number }[]; actual: { value: number }[] };
+      const planFilled = d.plan.filter((p) => p.value > 0).length;
+      const actualFilled = d.actual.filter((a) => a.value > 0).length;
+      if (planFilled < 3) return "low";
+      if (actualFilled < 2) return "medium";
+      return "high";
+    }
+    case "matrix": {
+      const d = data as { items: { name: string }[] };
+      const valid = d.items.filter((i) => i.name.trim()).length;
+      if (valid < 2) return "low";
+      if (valid < 4) return "medium";
+      return "high";
+    }
+    case "flowchart": {
+      const d = data as { nodes: { label: string }[] };
+      const valid = d.nodes.filter((n) => n.label.trim()).length;
+      if (valid < 2) return "low";
+      if (valid < 4) return "medium";
       return "high";
     }
   }
@@ -68,7 +100,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const validFrameworks: FrameworkType[] = ["fishbone", "pareto", "swot"];
     if (!validFrameworks.includes(framework as FrameworkType)) {
       return NextResponse.json(
         { success: false, error: "Invalid framework type" },
