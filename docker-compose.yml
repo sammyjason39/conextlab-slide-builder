@@ -16,7 +16,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.conextlab-chart.rule=Host(`chart.conextlab.ai`)"
-      - "traefik.http.routers.conextlab-chart.entrypoints=websecure"
+      - "traefik.http.routers.conextlab-chart.entrypoints=https"
       - "traefik.http.routers.conextlab-chart.tls.certresolver=letsencrypt"
       - "traefik.http.services.conextlab-chart.loadbalancer.server.port=3000"
 
