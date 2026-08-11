@@ -76,25 +76,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.OLLAMA_API_KEY;
+    const baseURL = process.env.OLLAMA_BASE_URL || "https://ollama.com/v1";
     if (!apiKey) {
       return NextResponse.json(
         {
           success: false,
           error:
-            "AI generation is not configured. Set OPENAI_API_KEY in your environment.",
+            "AI generation is not configured. Set OLLAMA_API_KEY in your environment.",
         },
         { status: 503 }
       );
     }
 
-    const openai = new OpenAI({ apiKey, timeout: API_TIMEOUT_MS });
+    const openai = new OpenAI({
+      apiKey,
+      baseURL,
+      timeout: API_TIMEOUT_MS,
+    });
 
     const systemPrompt = getSystemPrompt(framework as FrameworkType);
     const userPrompt = getUserPrompt(framework as FrameworkType, text);
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "deepseek-v4-pro:cloud",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },

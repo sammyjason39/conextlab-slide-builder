@@ -1,41 +1,40 @@
 "use client";
 
 import { FrameworkType } from "@/lib/types";
+import { IconMode, getFrameworkIcon } from "@/components/icons";
 
 interface FrameworkPickerProps {
   selected: FrameworkType | null;
   onSelect: (framework: FrameworkType) => void;
+  iconMode: IconMode;
 }
 
 const frameworks: {
   type: FrameworkType;
   label: string;
   description: string;
-  icon: string;
 }[] = [
   {
     type: "fishbone",
     label: "Fishbone",
     description: "Root cause analysis with cause-and-effect branches",
-    icon: "🐟",
   },
   {
     type: "pareto",
     label: "Pareto",
     description: "80/20 rule chart with cumulative percentage",
-    icon: "📊",
   },
   {
     type: "swot",
     label: "SWOT",
     description: "Strengths, Weaknesses, Opportunities, Threats",
-    icon: "🎯",
   },
 ];
 
 export default function FrameworkPicker({
   selected,
   onSelect,
+  iconMode,
 }: FrameworkPickerProps) {
   return (
     <div className="w-full">
@@ -56,7 +55,9 @@ export default function FrameworkPicker({
                 : "border-hairline hover:border-hairline-2 hover:shadow-sm"
             }`}
           >
-            <div className="text-3xl mb-3">{fw.icon}</div>
+            <div className="mb-3" style={{ color: selected === fw.type ? "#1652F0" : "#6B7280" }}>
+              {getFrameworkIcon(fw.type, iconMode, 32)}
+            </div>
             <h3 className="font-bold text-ink text-lg mb-1">{fw.label}</h3>
             <p className="text-sm text-muted leading-relaxed">
               {fw.description}

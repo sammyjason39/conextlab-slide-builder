@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  conextlab-slide-builder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: conextlab-slide-builder
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-https://ollama.com/v1}
+    networks:
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.conextlab-chart.rule=Host(`chart.conextlab.ai`)"
+      - "traefik.http.routers.conextlab-chart.entrypoints=websecure"
+      - "traefik.http.routers.conextlab-chart.tls.certresolver=letsencrypt"
+      - "traefik.http.services.conextlab-chart.loadbalancer.server.port=3000"
+
+networks:
+  traefik-public:
+    external: true

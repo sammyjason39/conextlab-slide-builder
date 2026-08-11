@@ -14,9 +14,11 @@ import {
 } from "@/lib/types";
 import { getDefaultTemplate } from "@/lib/templates";
 import { validateFrameworkData } from "@/lib/validation";
+import { IconMode } from "@/components/icons";
 import ErrorBoundary from "@/components/error-boundary";
 import FrameworkPicker from "@/components/framework-picker";
 import InputModeToggle from "@/components/input-mode-toggle";
+import IconModeToggle from "@/components/icon-mode-toggle";
 import AIInput from "@/components/ai-input";
 import FishboneForm from "@/components/forms/fishbone-form";
 import ParetoForm from "@/components/forms/pareto-form";
@@ -106,6 +108,7 @@ function HomeInner() {
   const [showDataLossWarning, setShowDataLossWarning] = useState(false);
   const [pendingFramework, setPendingFramework] =
     useState<FrameworkType | null>(null);
+  const [iconMode, setIconMode] = useState<IconMode>("emoji");
   const slideRef = useRef<HTMLDivElement>(null);
 
   const hasUserData = useCallback((): boolean => {
@@ -281,6 +284,7 @@ function HomeInner() {
           <FrameworkPicker
             selected={framework}
             onSelect={handleFrameworkSelect}
+            iconMode={iconMode}
           />
         </section>
 
@@ -377,6 +381,7 @@ function HomeInner() {
                   selected={template}
                   onSelect={handleTemplateSelect}
                 />
+                <IconModeToggle mode={iconMode} onChange={setIconMode} />
                 <ColorCustomizer
                   colors={template.colors}
                   onChange={handleColorChange}
@@ -411,6 +416,7 @@ function HomeInner() {
                     <SWOTPreview
                       data={data as SWOTData}
                       template={template}
+                      iconMode={iconMode}
                     />
                   )}
                 </SlideShell>

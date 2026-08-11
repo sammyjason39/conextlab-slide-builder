@@ -1,44 +1,42 @@
 "use client";
 
 import { SWOTData, TemplateConfig } from "@/lib/types";
+import { IconMode, getSwotQuadrantIcon } from "@/components/icons";
 
 interface SWOTPreviewProps {
   data: SWOTData;
   template: TemplateConfig;
+  iconMode: IconMode;
 }
 
 const quadrantConfig = [
   {
     key: "strengths" as const,
     label: "Strengths",
-    icon: "💪",
     tint: "rgba(220, 229, 254, 0.6)",
     borderColor: "#1652F0",
   },
   {
     key: "weaknesses" as const,
     label: "Weaknesses",
-    icon: "⚠️",
     tint: "rgba(254, 243, 199, 0.6)",
     borderColor: "#D97706",
   },
   {
     key: "opportunities" as const,
     label: "Opportunities",
-    icon: "🚀",
     tint: "rgba(209, 250, 229, 0.6)",
     borderColor: "#059669",
   },
   {
     key: "threats" as const,
     label: "Threats",
-    icon: "🛡️",
     tint: "rgba(254, 226, 226, 0.6)",
     borderColor: "#DC2626",
   },
 ];
 
-export default function SWOTPreview({ data, template }: SWOTPreviewProps) {
+export default function SWOTPreview({ data, template, iconMode }: SWOTPreviewProps) {
   const { colors } = template;
 
   const shadowStyle =
@@ -88,7 +86,9 @@ export default function SWOTPreview({ data, template }: SWOTPreviewProps) {
               }}
             >
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">{q.icon}</span>
+                <span style={{ color: q.borderColor }}>
+                  {getSwotQuadrantIcon(q.key, iconMode, 20)}
+                </span>
                 <h4
                   className="font-bold text-sm"
                   style={{ color: colors.text }}
