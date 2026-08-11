@@ -12,7 +12,7 @@ services:
       - OLLAMA_API_KEY=${OLLAMA_API_KEY}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-https://ollama.com/v1}
     networks:
-      - traefik-public
+      - coolify
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.conextlab-chart.rule=Host(`chart.conextlab.ai`)"
@@ -21,5 +21,5 @@ services:
       - "traefik.http.services.conextlab-chart.loadbalancer.server.port=3000"
 
 networks:
-  traefik-public:
+  coolify:
     external: true
