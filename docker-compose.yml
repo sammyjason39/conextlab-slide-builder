@@ -9,6 +9,7 @@ services:
       - NODE_ENV=production
       - OLLAMA_API_KEY=${OLLAMA_API_KEY}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-https://ollama.com/v1}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-glm-5.2:cloud}
     networks:
       - coolify
     labels:

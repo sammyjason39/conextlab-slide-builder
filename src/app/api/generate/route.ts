@@ -126,11 +126,12 @@ export async function POST(request: NextRequest) {
       timeout: API_TIMEOUT_MS,
     });
 
+    const model = process.env.OLLAMA_MODEL || "glm-5.2:cloud";
     const systemPrompt = getSystemPrompt(framework as FrameworkType);
     const userPrompt = getUserPrompt(framework as FrameworkType, text);
 
     const completion = await openai.chat.completions.create({
-      model: "deepseek-v4-pro:cloud",
+      model,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
