@@ -494,7 +494,7 @@ test.describe("Flowchart", () => {
     await page.waitForTimeout(500);
 
     await expect(page.locator("text=Vending Machine Algorithm").first()).toBeVisible();
-    await expect(page.locator("text=Coin valid?").first()).toBeVisible();
+    await expect(page.locator("input[placeholder='Step label']").nth(2)).toHaveValue("Coin valid?");
     await expect(page.locator("input[placeholder='Yes/No']").nth(2)).toHaveValue("Yes");
     await expect(page.locator("input[placeholder='Yes/No']").nth(3)).toHaveValue("No");
   });
