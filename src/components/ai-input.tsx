@@ -30,7 +30,7 @@ export default function AIInput({ framework, onResult }: AIInputProps) {
     matrix:
       "Paste your initiatives list here...\n\nExample:\nQ3 priorities:\n- Redesign landing page (high impact, medium effort)\n- Fix checkout bug (high impact, low effort)\n- Update FAQ page (low impact, low effort)\n- Migrate database (high impact, high effort)",
     flowchart:
-      "Paste your process description here...\n\nExample:\nCustomer onboarding: Start with signup form, then verify email. If email verified, create account and send welcome email. If not verified, send reminder and wait 24h.",
+      "Paste your process description here...\n\nExample:\nVending machine: Start, insert coin. If coin is invalid, reject coin and end. If valid, select item. If item is unavailable, refund coin and end. If available, dispense item and end.",
   };
 
   const handleGenerate = async () => {

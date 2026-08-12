@@ -7,6 +7,24 @@ interface FishbonePreviewProps {
   template: TemplateConfig;
 }
 
+const CATEGORY_PALETTE = [
+  "#E8A317",
+  "#E83E8C",
+  "#9B1B30",
+  "#7C3AED",
+  "#22B8CF",
+  "#3FA034",
+];
+
+const MINIMAL_PALETTE = [
+  "#1F2937",
+  "#374151",
+  "#4B5563",
+  "#374151",
+  "#4B5563",
+  "#1F2937",
+];
+
 function escapeXml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -22,7 +40,56 @@ function getContrastTextColor(bgHex: string): string {
   const g = parseInt(hex.substring(2, 4), 16);
   const b = parseInt(hex.substring(4, 6), 16);
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? "#0A0A0A" : "#FFFFFF";
+  return luminance > 0.55 ? "#0A0A0A" : "#FFFFFF";
+}
+
+function wrapText(text: string, maxChars: number, maxLines: number): string[] {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+  const lines: string[] = [];
+  let current = "";
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    const next = current ? `${current} ${word}` : word;
+    if (next.length <= maxChars) {
+      current = next;
+      continue;
+    }
+    if (current) lines.push(current);
+    if (lines.length === maxLines - 1) {
+      const rest = [word, ...words.slice(i + 1)].join(" ");
+      lines.push(
+        rest.length > maxChars ? `${rest.slice(0, maxChars - 1)}…` : rest
+      );
+      return lines;
+    }
+    current = word.length > maxChars ? `${word.slice(0, maxChars - 1)}…` : word;
+  }
+  if (current) lines.push(current);
+  return lines.slice(0, maxLines);
+}
+
+function elongatedHex(cx: number, cy: number, w: number, h: number): string {
+  const tip = Math.min(h * 0.55, w * 0.22);
+  const hw = w / 2;
+  const hh = h / 2;
+  return [
+    `${cx - hw},${cy}`,
+    `${cx - hw + tip},${cy - hh}`,
+    `${cx + hw - tip},${cy - hh}`,
+    `${cx + hw},${cy}`,
+    `${cx + hw - tip},${cy + hh}`,
+    `${cx - hw + tip},${cy + hh}`,
+  ].join(" ");
+}
+
+function regularHex(cx: number, cy: number, r: number): string {
+  const pts: string[] = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 180) * (60 * i - 30);
+    pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`);
+  }
+  return pts.join(" ");
 }
 
 export default function FishbonePreview({
@@ -30,27 +97,132 @@ export default function FishbonePreview({
   template,
 }: FishbonePreviewProps) {
   const { colors } = template;
-  const width = 800;
-  const height = 500;
-  const headX = width - 100;
-  const headY = height / 2;
-  const spineStartX = 80;
-  const spineEndX = headX - 60;
+  const width = 960;
+  const height = 430;
+  const spineY = height / 2;
+  const spineStartX = 70;
+  const spineEndX = width - 148;
+  const structure = template.chartStyle === "minimal" ? colors.secondary : "#4B5563";
+  const palette =
+    template.chartStyle === "minimal" ? MINIMAL_PALETTE : CATEGORY_PALETTE;
+  const lineW = Math.max(1.25, Math.min(template.lineWeight, 2.25));
 
-  const activeCategories = data.categories
-    .filter(
-      (cat) =>
-        cat.causes.length > 0 && cat.causes.some((c) => c.trim())
-    )
+  const categories = data.categories
+    .filter((cat) => cat.name.trim())
     .slice(0, 6);
 
-  const categoryPositions = activeCategories.map((_, i) => {
-    const total = activeCategories.length;
-    if (total === 1) return headY;
-    return 60 + ((height - 120) / (total - 1)) * i;
-  });
+  const mid = Math.ceil(categories.length / 2) || 0;
+  const topCats = categories.slice(0, mid);
+  const bottomCats = categories.slice(mid);
+  const slotCount = Math.max(topCats.length, bottomCats.length, 1);
 
-  const headTextColor = getContrastTextColor(colors.accent);
+  const hexXs = (count: number): number[] => {
+    if (count <= 0) return [];
+    const left = 148;
+    const right = 612;
+    if (count === 1) return [(left + right) / 2];
+    if (count === 2) return [210, 500];
+    return Array.from(
+      { length: count },
+      (_, i) => left + ((right - left) * i) / (count - 1)
+    );
+  };
+
+  const topXs = hexXs(topCats.length || slotCount);
+  const bottomXs = hexXs(bottomCats.length || slotCount);
+  const hexW = 136;
+  const hexH = 34;
+  const topHexY = 44;
+  const bottomHexY = height - 44;
+  const boneRun = 118;
+
+  const renderBone = (
+    cat: (typeof categories)[number],
+    hexX: number,
+    hexY: number,
+    color: string
+  ) => {
+    const attachX = hexX + hexW / 2 + boneRun * 0.55;
+    const hexRightX = hexX + hexW / 2;
+    const causes = cat.causes.map((c) => c.trim()).filter(Boolean);
+    const slots = Math.max(3, Math.min(causes.length, 4));
+    const labelColor = getContrastTextColor(color);
+    const catLines = wrapText(cat.name, 16, 2);
+
+    return (
+      <g key={cat.id}>
+        <line
+          x1={attachX}
+          y1={spineY}
+          x2={hexRightX}
+          y2={hexY}
+          stroke={structure}
+          strokeWidth={lineW}
+          strokeLinecap="round"
+        />
+        <polygon
+          points={elongatedHex(hexX, hexY, hexW, hexH)}
+          fill={color}
+        />
+        {catLines.map((line, li) => (
+          <text
+            key={li}
+            x={hexX}
+            y={
+              hexY +
+              (li - (catLines.length - 1) / 2) * 11 +
+              4
+            }
+            textAnchor="middle"
+            fill={labelColor}
+            fontSize={11}
+            fontWeight={700}
+          >
+            {escapeXml(line)}
+          </text>
+        ))}
+        {Array.from({ length: slots }).map((_, ci) => {
+          const t = (ci + 1) / (slots + 1);
+          const px = hexRightX + (attachX - hexRightX) * t;
+          const py = hexY + (spineY - hexY) * t;
+          const cause = causes[ci] || "";
+          const lineLen = 92;
+          const text =
+            cause.length > 28 ? `${cause.slice(0, 27)}…` : cause;
+          return (
+            <g key={`${cat.id}-c-${ci}`}>
+              <line
+                x1={px}
+                y1={py}
+                x2={px - lineLen}
+                y2={py}
+                stroke={structure}
+                strokeWidth={1.25}
+                strokeLinecap="round"
+              />
+              <polygon
+                points={regularHex(px, py, 5.5)}
+                fill={color}
+                stroke={colors.background}
+                strokeWidth={1}
+              />
+              {text ? (
+                <text
+                  x={px - 10}
+                  y={py - 6}
+                  textAnchor="end"
+                  fill={colors.text}
+                  fontSize={10}
+                >
+                  {escapeXml(text)}
+                </text>
+              ) : null}
+            </g>
+          );
+        })}
+      </g>
+    );
+  };
 
   return (
     <svg
@@ -58,7 +230,6 @@ export default function FishbonePreview({
       className="w-full h-auto"
       style={{ fontFamily: "Geist, system-ui, sans-serif" }}
     >
-      {/* Background */}
       <rect
         x={0}
         y={0}
@@ -68,104 +239,51 @@ export default function FishbonePreview({
         rx={template.borderRadius * 2}
       />
 
-      {/* Main spine */}
+      {/* Tail */}
+      <polygon
+        points={`${spineStartX},${spineY} 22,${spineY - 34} 10,${spineY} 22,${spineY + 34}`}
+        fill={structure}
+      />
+
+      {/* Spine */}
       <line
         x1={spineStartX}
-        y1={headY}
+        y1={spineY}
         x2={spineEndX}
-        y2={headY}
-        stroke={colors.accent}
-        strokeWidth={template.lineWeight + 1}
+        y2={spineY}
+        stroke={structure}
+        strokeWidth={lineW + 0.5}
         strokeLinecap="round"
       />
 
-      {/* Category spines */}
-      {activeCategories.map((cat, i) => {
-        const y = categoryPositions[i];
-        const midX = spineStartX + (spineEndX - spineStartX) * 0.5;
-        return (
-          <g key={cat.id}>
-            <line
-              x1={midX}
-              y1={headY}
-              x2={spineStartX + 20}
-              y2={y}
-              stroke={colors.secondary}
-              strokeWidth={template.lineWeight}
-              strokeLinecap="round"
-            />
-            <text
-              x={spineStartX + 10}
-              y={y - 8}
-              fill={colors.text}
-              fontSize={13}
-              fontWeight={700}
-              textAnchor="start"
-            >
-              {escapeXml(cat.name)}
-            </text>
-            {cat.causes
-              .filter((c) => c.trim())
-              .map((cause, ci) => {
-                const trimmedCauses = cat.causes.filter((c) =>
-                  c.trim()
-                );
-                const causeY =
-                  y +
-                  (ci - (trimmedCauses.length - 1) / 2) * 22;
-                const causeX = spineStartX + 30;
-                const displayText =
-                  cause.length > 30
-                    ? cause.slice(0, 30) + "..."
-                    : cause;
-                return (
-                  <g key={ci}>
-                    <line
-                      x1={causeX}
-                      y1={y}
-                      x2={causeX + 30}
-                      y2={causeY}
-                      stroke={colors.muted}
-                      strokeWidth={1}
-                    />
-                    <text
-                      x={causeX + 35}
-                      y={causeY + 4}
-                      fill={colors.muted}
-                      fontSize={11}
-                    >
-                      {escapeXml(displayText)}
-                    </text>
-                  </g>
-                );
-              })}
-          </g>
-        );
-      })}
+      {topCats.map((cat, i) =>
+        renderBone(cat, topXs[i] ?? topXs[0], topHexY, palette[i % palette.length])
+      )}
+      {bottomCats.map((cat, i) =>
+        renderBone(
+          cat,
+          bottomXs[i] ?? bottomXs[0],
+          bottomHexY,
+          palette[(mid + i) % palette.length]
+        )
+      )}
 
-      {/* Problem head */}
-      <rect
-        x={headX - 40}
-        y={headY - 30}
-        width={120}
-        height={60}
-        rx={template.borderRadius}
-        fill={colors.accent}
+      {/* Head */}
+      <path
+        d={`M ${spineEndX} ${spineY - 7}
+            L ${spineEndX + 18} ${spineY - 48}
+            Q ${width - 70} ${spineY - 58}, ${width - 34} ${spineY - 18}
+            L ${width - 18} ${spineY - 8}
+            L ${width - 36} ${spineY}
+            L ${width - 18} ${spineY + 8}
+            Q ${width - 34} ${spineY + 18}, ${width - 70} ${spineY + 58}
+            L ${spineEndX + 18} ${spineY + 48}
+            L ${spineEndX} ${spineY + 7}
+            Z`}
+        fill={structure}
       />
-      <text
-        x={headX + 20}
-        y={headY + 5}
-        fill={headTextColor}
-        fontSize={12}
-        fontWeight={700}
-        textAnchor="middle"
-      >
-        {escapeXml(
-          data.problemStatement.length > 25
-            ? data.problemStatement.slice(0, 25) + "..."
-            : data.problemStatement
-        )}
-      </text>
+      <circle cx={width - 78} cy={spineY - 14} r={7} fill="#FFFFFF" />
+      <circle cx={width - 76} cy={spineY - 14} r={3.2} fill={structure} />
     </svg>
   );
 }

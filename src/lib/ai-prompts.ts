@@ -19,7 +19,7 @@ Extract data for a Fishbone (Ishikawa) diagram. The JSON must match this schema:
   ]
 }
 
-Default categories are Man, Machine, Method, Material. If the text doesn't mention specific categories, use these defaults.
+Default categories are the 6Ms: Man, Machine, Method, Material, Measurement, Environment. If the text doesn't mention specific categories, use these defaults. Include up to 6 categories.
 If you cannot determine the problem statement, use the most prominent issue mentioned in the text.
 Always include at least one category with at least one cause.`;
 
@@ -143,9 +143,10 @@ Extract data for a flowchart / process map. The JSON must match this schema:
   ]
 }
 
-Extract a sequential process from the text. The first node must be type "start", the last must be type "end".
-Decision nodes should have two outgoing edges (typically labeled Yes/No).
-Include at least 4 nodes.`;
+Extract a process from the text. The first node must be type "start". End nodes must be type "end".
+Decision nodes MUST have exactly two outgoing edges labeled Yes and No (or True/False).
+Do not keep the flow strictly linear after a decision — create real left/right branches.
+Include at least 6 nodes when the process has a decision.`;
 
     default:
       return base;

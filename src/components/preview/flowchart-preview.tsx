@@ -1,15 +1,83 @@
 "use client";
 
-import { FlowchartData, TemplateConfig } from "@/lib/types";
+import { FlowchartData, FlowchartEdge, TemplateConfig } from "@/lib/types";
 
 interface FlowchartPreviewProps {
   data: FlowchartData;
   template: TemplateConfig;
 }
 
-export default function FlowchartPreview({ data, template }: FlowchartPreviewProps) {
+function escapeXml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function wrapText(text: string, maxChars: number, maxLines: number): string[] {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+  const lines: string[] = [];
+  let current = "";
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    const next = current ? `${current} ${word}` : word;
+    if (next.length <= maxChars) {
+      current = next;
+      continue;
+    }
+    if (current) lines.push(current);
+    if (lines.length === maxLines - 1) {
+      const rest = [word, ...words.slice(i + 1)].join(" ");
+      lines.push(
+        rest.length > maxChars ? `${rest.slice(0, maxChars - 1)}…` : rest
+      );
+      return lines;
+    }
+    current = word.length > maxChars ? `${word.slice(0, maxChars - 1)}…` : word;
+  }
+  if (current) lines.push(current);
+  return lines.slice(0, maxLines);
+}
+
+function branchOrder(label?: string): number {
+  const l = (label || "").trim().toLowerCase();
+  if (["no", "false", "n", "tidak", "reject"].includes(l)) return -1;
+  if (["yes", "true", "y", "ya", "ok"].includes(l)) return 1;
+  return 0;
+}
+
+function arrowHead(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  size = 9
+): string {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  const px = -uy;
+  const py = ux;
+  const bx = x2 - ux * size;
+  const by = y2 - uy * size;
+  return `${x2},${y2} ${bx + px * size * 0.55},${by + py * size * 0.55} ${bx - px * size * 0.55},${by - py * size * 0.55}`;
+}
+
+export default function FlowchartPreview({
+  data,
+  template,
+}: FlowchartPreviewProps) {
   const { colors } = template;
   const validNodes = data.nodes.filter((n) => n.label.trim());
+  const validIds = new Set(validNodes.map((n) => n.id));
+  const validEdges = data.edges.filter(
+    (e) => validIds.has(e.from) && validIds.has(e.to)
+  );
 
   if (validNodes.length === 0) {
     return (
@@ -24,34 +92,103 @@ export default function FlowchartPreview({ data, template }: FlowchartPreviewPro
     );
   }
 
-  const shadowStyle =
-    template.shadowDepth === "heavy"
-      ? "0 8px 30px rgba(0,0,0,0.12)"
-      : template.shadowDepth === "medium"
-      ? "0 4px 16px rgba(0,0,0,0.08)"
-      : template.shadowDepth === "subtle"
-      ? "0 2px 8px rgba(0,0,0,0.04)"
-      : "none";
+  const outgoing = new Map<string, FlowchartEdge[]>();
+  const incomingCount = new Map<string, number>();
+  for (const n of validNodes) {
+    outgoing.set(n.id, []);
+    incomingCount.set(n.id, 0);
+  }
+  for (const e of validEdges) {
+    outgoing.get(e.from)!.push(e);
+    incomingCount.set(e.to, (incomingCount.get(e.to) || 0) + 1);
+  }
+  Array.from(outgoing.values()).forEach((edges) => {
+    edges.sort((a, b) => branchOrder(a.label) - branchOrder(b.label));
+  });
 
-  const nodeW = 100;
-  const nodeH = 40;
-  const gapY = 60;
-  const svgW = 400;
-  const svgH = Math.max(200, validNodes.length * gapY + 40);
+  const roots = validNodes.filter(
+    (n) => n.type === "start" || (incomingCount.get(n.id) || 0) === 0
+  );
+  if (roots.length === 0) roots.push(validNodes[0]);
 
-  const getNodeShape = (type: string) => {
-    switch (type) {
-      case "start":
-      case "end":
-        return "rounded";
-      case "decision":
-        return "diamond";
-      default:
-        return "rect";
-    }
+  const grid = new Map<string, { col: number; row: number }>();
+  const occupied = new Set<string>();
+  const cell = (c: number, r: number) => `${c},${r}`;
+
+  const place = (id: string, col: number, row: number) => {
+    if (grid.has(id)) return;
+    let c = col;
+    while (occupied.has(cell(c, row))) c += 1;
+    grid.set(id, { col: c, row });
+    occupied.add(cell(c, row));
   };
 
-  const getNodeColor = (type: string) => {
+  const walk = (id: string, col: number, row: number, visiting: Set<string>) => {
+    if (visiting.has(id) || grid.has(id)) return;
+    visiting.add(id);
+    place(id, col, row);
+    const placedCol = grid.get(id)!.col;
+    const outs = outgoing.get(id) || [];
+    if (outs.length === 0) return;
+    if (outs.length === 1) {
+      walk(outs[0].to, placedCol, row + 1, visiting);
+      return;
+    }
+    if (outs.length === 2) {
+      walk(outs[0].to, placedCol - 1, row + 1, visiting);
+      walk(outs[1].to, placedCol, row + 1, visiting);
+      return;
+    }
+    outs.forEach((edge, i) => {
+      const offset = i - Math.floor((outs.length - 1) / 2);
+      walk(edge.to, placedCol + offset, row + 1, visiting);
+    });
+  };
+
+  let rootCol = 0;
+  for (const root of roots) {
+    walk(root.id, rootCol, 0, new Set());
+    rootCol += 2;
+  }
+
+  let extraRow =
+    (grid.size ? Math.max(...Array.from(grid.values()).map((p) => p.row)) : 0) + 1;
+  for (const n of validNodes) {
+    if (!grid.has(n.id)) place(n.id, 0, extraRow++);
+  }
+
+  const cols = Array.from(grid.values()).map((p) => p.col);
+  const rows = Array.from(grid.values()).map((p) => p.row);
+  const minCol = Math.min(...cols);
+  const maxCol = Math.max(...cols);
+  const maxRow = Math.max(...rows);
+
+  const NODE_W = 138;
+  const NODE_H = 46;
+  const H_GAP = 188;
+  const V_GAP = 98;
+  const PAD_X = 48;
+  const PAD_Y = 28;
+
+  const svgW = Math.max(420, (maxCol - minCol + 1) * H_GAP + PAD_X * 2);
+  const svgH = Math.max(240, (maxRow + 1) * V_GAP + PAD_Y * 2);
+
+  const positions = new Map<
+    string,
+    { x: number; y: number; w: number; h: number }
+  >();
+  for (const n of validNodes) {
+    const g = grid.get(n.id)!;
+    const isDecision = n.type === "decision";
+    positions.set(n.id, {
+      x: PAD_X + (g.col - minCol) * H_GAP + H_GAP / 2,
+      y: PAD_Y + g.row * V_GAP + NODE_H / 2,
+      w: isDecision ? 108 : NODE_W,
+      h: isDecision ? 72 : NODE_H,
+    });
+  }
+
+  const nodeColor = (type: string) => {
     switch (type) {
       case "start":
         return "#059669";
@@ -60,13 +197,24 @@ export default function FlowchartPreview({ data, template }: FlowchartPreviewPro
       case "decision":
         return "#D97706";
       default:
-        return colors.accent;
+        return colors.accent || "#1652F0";
     }
   };
 
+  const shadowStyle =
+    template.shadowDepth === "heavy"
+      ? "0 8px 30px rgba(0,0,0,0.12)"
+      : template.shadowDepth === "medium"
+        ? "0 4px 16px rgba(0,0,0,0.08)"
+        : template.shadowDepth === "subtle"
+          ? "0 2px 8px rgba(0,0,0,0.04)"
+          : "none";
+
+  const strokeW = Math.max(1.75, template.lineWeight);
+
   return (
     <div
-      className="w-full p-4 rounded-2xl"
+      className="w-full p-3 rounded-2xl"
       style={{
         backgroundColor: colors.background,
         borderRadius: template.borderRadius * 2,
@@ -74,8 +222,8 @@ export default function FlowchartPreview({ data, template }: FlowchartPreviewPro
       }}
     >
       <h3
-        className="text-center font-bold mb-3"
-        style={{ color: colors.text, fontSize: 16 }}
+        className="text-center font-bold mb-2"
+        style={{ color: colors.text, fontSize: 15 }}
       >
         {data.title || "Flowchart"}
       </h3>
@@ -83,113 +231,132 @@ export default function FlowchartPreview({ data, template }: FlowchartPreviewPro
       <svg
         viewBox={`0 0 ${svgW} ${svgH}`}
         className="w-full"
-        style={{ maxHeight: svgH }}
+        style={{ fontFamily: "Geist, system-ui, sans-serif" }}
       >
-        {/* Edges */}
-        {data.edges.map((edge, i) => {
-          const fromIdx = validNodes.findIndex((n) => n.id === edge.from);
-          const toIdx = validNodes.findIndex((n) => n.id === edge.to);
-          if (fromIdx < 0 || toIdx < 0) return null;
+        {validEdges.map((edge, i) => {
+          const a = positions.get(edge.from);
+          const b = positions.get(edge.to);
+          if (!a || !b) return null;
 
-          const x1 = svgW / 2;
-          const y1 = fromIdx * gapY + nodeH + 10;
-          const x2 = svgW / 2;
-          const y2 = toIdx * gapY + 10;
+          const startX = a.x;
+          const startY = a.y + a.h / 2 - 1;
+          const endX = b.x;
+          const endY = b.y - b.h / 2 + 1;
+          const sameCol = Math.abs(a.x - b.x) < 6;
+          const midY = startY + Math.max(16, (endY - startY) * 0.38);
+          const d = sameCol
+            ? `M ${startX} ${startY} L ${endX} ${endY}`
+            : `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+          const ah = sameCol
+            ? arrowHead(startX, startY, endX, endY)
+            : arrowHead(endX, midY, endX, endY);
+          const labelX = sameCol ? startX + 16 : (startX + endX) / 2;
+          const labelY = sameCol ? (startY + endY) / 2 : midY - 8;
 
           return (
             <g key={`edge-${i}`}>
-              <line
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke={colors.border}
-                strokeWidth={1.5}
-                markerEnd="url(#arrowhead)"
+              <path
+                d={d}
+                fill="none"
+                stroke={colors.secondary || "#4B5563"}
+                strokeWidth={strokeW}
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
-              {edge.label && (
-                <text
-                  x={x1 + 12}
-                  y={(y1 + y2) / 2}
-                  fill={colors.muted}
-                  fontSize={9}
-                >
-                  {edge.label}
-                </text>
-              )}
+              <polygon
+                points={ah}
+                fill={colors.secondary || "#4B5563"}
+              />
+              {edge.label ? (
+                <g>
+                  <rect
+                    x={labelX - 16}
+                    y={labelY - 10}
+                    width={32}
+                    height={16}
+                    rx={8}
+                    fill={colors.background}
+                    stroke={colors.border}
+                    strokeWidth={1}
+                  />
+                  <text
+                    x={labelX}
+                    y={labelY + 2}
+                    textAnchor="middle"
+                    fill={colors.text}
+                    fontSize={9}
+                    fontWeight={700}
+                  >
+                    {escapeXml(edge.label)}
+                  </text>
+                </g>
+              ) : null}
             </g>
           );
         })}
 
-        {/* Arrow marker */}
-        <defs>
-          <marker
-            id="arrowhead"
-            markerWidth="8"
-            markerHeight="6"
-            refX="8"
-            refY="3"
-            orient="auto"
-          >
-            <polygon points="0 0, 8 3, 0 6" fill={colors.border} />
-          </marker>
-        </defs>
+        {validNodes.map((node) => {
+          const p = positions.get(node.id)!;
+          const color = nodeColor(node.type);
+          const lines = wrapText(node.label, node.type === "decision" ? 12 : 16, 2);
 
-        {/* Nodes */}
-        {validNodes.map((node, idx) => {
-          const shape = getNodeShape(node.type);
-          const nodeColor = getNodeColor(node.type);
-          const cx = svgW / 2;
-          const cy = idx * gapY + 20;
-
-          if (shape === "diamond") {
-            const d = 36;
+          if (node.type === "decision") {
+            const dx = p.w / 2;
+            const dy = p.h / 2;
             return (
               <g key={node.id}>
                 <polygon
-                  points={`${cx},${cy - d} ${cx + d * 1.3},${cy} ${cx},${cy + d} ${cx - d * 1.3},${cy}`}
-                  fill={`${nodeColor}15`}
-                  stroke={nodeColor}
-                  strokeWidth={1.5}
+                  points={`${p.x},${p.y - dy} ${p.x + dx},${p.y} ${p.x},${p.y + dy} ${p.x - dx},${p.y}`}
+                  fill={color}
+                  fillOpacity={0.12}
+                  stroke={color}
+                  strokeWidth={2}
                 />
-                <text
-                  x={cx}
-                  y={cy + 1}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fill={nodeColor}
-                  fontSize={9}
-                  fontWeight="bold"
-                >
-                  {node.label.length > 14 ? node.label.slice(0, 12) + ".." : node.label}
-                </text>
+                {lines.map((line, li) => (
+                  <text
+                    key={li}
+                    x={p.x}
+                    y={p.y + (li - (lines.length - 1) / 2) * 12 + 4}
+                    textAnchor="middle"
+                    fill={color}
+                    fontSize={10}
+                    fontWeight={700}
+                  >
+                    {escapeXml(line)}
+                  </text>
+                ))}
               </g>
             );
           }
 
+          const radius =
+            node.type === "start" || node.type === "end" ? NODE_H / 2 : 8;
           return (
             <g key={node.id}>
               <rect
-                x={cx - nodeW / 2}
-                y={cy - nodeH / 2}
-                width={nodeW}
-                height={nodeH}
-                rx={shape === "rounded" ? nodeH / 2 : 6}
-                fill={`${nodeColor}15`}
-                stroke={nodeColor}
-                strokeWidth={1.5}
+                x={p.x - p.w / 2}
+                y={p.y - p.h / 2}
+                width={p.w}
+                height={p.h}
+                rx={radius}
+                fill={color}
+                fillOpacity={0.12}
+                stroke={color}
+                strokeWidth={2}
               />
-              <text
-                x={cx}
-                y={cy + 1}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fill={nodeColor}
-                fontSize={9}
-                fontWeight="bold"
-              >
-                {node.label.length > 16 ? node.label.slice(0, 14) + ".." : node.label}
-              </text>
+              {lines.map((line, li) => (
+                <text
+                  key={li}
+                  x={p.x}
+                  y={p.y + (li - (lines.length - 1) / 2) * 13 + 4}
+                  textAnchor="middle"
+                  fill={color}
+                  fontSize={11}
+                  fontWeight={700}
+                >
+                  {escapeXml(line)}
+                </text>
+              ))}
             </g>
           );
         })}

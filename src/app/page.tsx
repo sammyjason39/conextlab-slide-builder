@@ -53,6 +53,8 @@ function getEmptyData(framework: FrameworkType): FrameworkData {
           { id: "machine", name: "Machine", causes: [""] },
           { id: "method", name: "Method", causes: [""] },
           { id: "material", name: "Material", causes: [""] },
+          { id: "measurement", name: "Measurement", causes: [""] },
+          { id: "environment", name: "Environment", causes: [""] },
         ],
       } as FishboneData;
     case "pareto":

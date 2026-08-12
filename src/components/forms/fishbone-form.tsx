@@ -1,6 +1,6 @@
 "use client";
 
-import { FishboneData, FishboneCategory, ValidationError } from "@/lib/types";
+import { FishboneData, ValidationError } from "@/lib/types";
 import { validateFishbone } from "@/lib/validation";
 
 interface FishboneFormProps {
@@ -8,13 +8,6 @@ interface FishboneFormProps {
   onChange: (data: FishboneData) => void;
   onValidation: (errors: ValidationError[]) => void;
 }
-
-const defaultCategories: FishboneCategory[] = [
-  { id: "man", name: "Man", causes: [""] },
-  { id: "machine", name: "Machine", causes: [""] },
-  { id: "method", name: "Method", causes: [""] },
-  { id: "material", name: "Material", causes: [""] },
-];
 
 export default function FishboneForm({
   data,
