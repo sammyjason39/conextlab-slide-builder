@@ -93,7 +93,7 @@ export default function FishbonePreview({
 }: FishbonePreviewProps) {
   const { colors } = template;
   const width = 960;
-  const height = 430;
+  const height = 480;
   const spineY = height / 2;
   const spineStartX = 58;
   const spineEndX = width - 148;
@@ -181,7 +181,7 @@ export default function FishbonePreview({
           const available = Math.max(80, px - leftMargin - 12);
           const charW = 5.15;
           const maxChars = Math.max(16, Math.floor(available / charW));
-          const lines = cause ? wrapText(cause, maxChars, 3) : [];
+          const lines = cause ? wrapText(cause, maxChars, 5) : [];
           const lineLen = Math.min(
             available,
             Math.max(88, (lines[0]?.length || 12) * charW + 8)

@@ -55,10 +55,7 @@ export default function ParetoPreview({
     const percentage = total > 0 ? (item.count / total) * 100 : 0;
     runningCumulative += percentage;
     return {
-      name:
-        item.name.length > 20
-          ? item.name.slice(0, 20) + "..."
-          : item.name,
+      name: item.name,
       count: item.count,
       percentage: Math.round(percentage * 10) / 10,
       cumulative: Math.round(runningCumulative * 10) / 10,
@@ -73,10 +70,9 @@ export default function ParetoPreview({
   });
 
   const is3D = template.chartStyle === "3d";
-  const xInterval =
-    chartData.length > 10
-      ? Math.floor(chartData.length / 8)
-      : 0;
+  const rotateLabels =
+    chartData.length > 5 || chartData.some((d) => d.name.length > 14);
+  const xInterval = 0;
 
   if (chartData.length === 0) {
     return (
@@ -117,10 +113,10 @@ export default function ParetoPreview({
       >
         {data.title}
       </h3>
-      <ResponsiveContainer width="100%" height={350}>
+      <ResponsiveContainer width="100%" height={rotateLabels ? 400 : 350}>
         <ComposedChart
           data={chartData}
-          margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
+          margin={{ top: 10, right: 30, left: 0, bottom: rotateLabels ? 48 : 8 }}
         >
           {template.chartStyle !== "minimal" && (
             <CartesianGrid
@@ -130,10 +126,13 @@ export default function ParetoPreview({
           )}
           <XAxis
             dataKey="name"
-            tick={{ fontSize: 11, fill: colors.muted }}
+            tick={{ fontSize: 10, fill: colors.muted }}
             axisLine={{ stroke: colors.border }}
             tickLine={false}
             interval={xInterval}
+            angle={rotateLabels ? -32 : 0}
+            textAnchor={rotateLabels ? "end" : "middle"}
+            height={rotateLabels ? 70 : 30}
           />
           <YAxis
             yAxisId="left"

@@ -16,30 +16,25 @@ function escapeXml(s: string): string {
     .replace(/'/g, "&apos;");
 }
 
-function wrapText(text: string, maxChars: number, maxLines: number): string[] {
+function wrapText(text: string, maxChars: number, maxLines = 8): string[] {
   const words = text.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
   const lines: string[] = [];
   let current = "";
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i];
+  for (const word of words) {
     const next = current ? `${current} ${word}` : word;
-    if (next.length <= maxChars) {
+    if (!current || next.length <= maxChars) {
       current = next;
       continue;
     }
-    if (current) lines.push(current);
-    if (lines.length === maxLines - 1) {
-      const rest = [word, ...words.slice(i + 1)].join(" ");
-      lines.push(
-        rest.length > maxChars ? `${rest.slice(0, maxChars - 1)}…` : rest
-      );
-      return lines;
-    }
-    current = word.length > maxChars ? `${word.slice(0, maxChars - 1)}…` : word;
+    lines.push(current);
+    current = word;
   }
   if (current) lines.push(current);
-  return lines.slice(0, maxLines);
+  if (lines.length <= maxLines) return lines;
+  const kept = lines.slice(0, maxLines - 1);
+  kept.push(lines.slice(maxLines - 1).join(" "));
+  return kept;
 }
 
 function branchOrder(label?: string): number {
@@ -163,12 +158,26 @@ export default function FlowchartPreview({
   const maxCol = Math.max(...cols);
   const maxRow = Math.max(...rows);
 
-  const NODE_W = 138;
-  const NODE_H = 46;
-  const H_GAP = 188;
-  const V_GAP = 98;
+  const NODE_W = 148;
+  const BASE_H = 46;
+  const H_GAP = 200;
   const PAD_X = 48;
   const PAD_Y = 28;
+
+  const labelLines = new Map<string, string[]>();
+  const nodeHeights = new Map<string, number>();
+  let maxNodeH = BASE_H;
+  for (const n of validNodes) {
+    const lines = wrapText(n.label, n.type === "decision" ? 14 : 18, 8);
+    labelLines.set(n.id, lines);
+    const h =
+      n.type === "decision"
+        ? Math.max(72, lines.length * 14 + 28)
+        : Math.max(BASE_H, lines.length * 14 + 20);
+    nodeHeights.set(n.id, h);
+    maxNodeH = Math.max(maxNodeH, h);
+  }
+  const V_GAP = maxNodeH + 52;
 
   const svgW = Math.max(420, (maxCol - minCol + 1) * H_GAP + PAD_X * 2);
   const svgH = Math.max(240, (maxRow + 1) * V_GAP + PAD_Y * 2);
@@ -180,11 +189,12 @@ export default function FlowchartPreview({
   for (const n of validNodes) {
     const g = grid.get(n.id)!;
     const isDecision = n.type === "decision";
+    const h = nodeHeights.get(n.id) || BASE_H;
     positions.set(n.id, {
       x: PAD_X + (g.col - minCol) * H_GAP + H_GAP / 2,
-      y: PAD_Y + g.row * V_GAP + NODE_H / 2,
-      w: isDecision ? 108 : NODE_W,
-      h: isDecision ? 72 : NODE_H,
+      y: PAD_Y + g.row * V_GAP + h / 2,
+      w: isDecision ? Math.max(120, h * 1.35) : NODE_W,
+      h,
     });
   }
 
@@ -298,7 +308,7 @@ export default function FlowchartPreview({
         {validNodes.map((node) => {
           const p = positions.get(node.id)!;
           const color = nodeColor(node.type);
-          const lines = wrapText(node.label, node.type === "decision" ? 12 : 16, 2);
+          const lines = labelLines.get(node.id) || wrapText(node.label, 18, 8);
 
           if (node.type === "decision") {
             const dx = p.w / 2;
@@ -330,7 +340,7 @@ export default function FlowchartPreview({
           }
 
           const radius =
-            node.type === "start" || node.type === "end" ? NODE_H / 2 : 8;
+            node.type === "start" || node.type === "end" ? p.h / 2 : 8;
           return (
             <g key={node.id}>
               <rect

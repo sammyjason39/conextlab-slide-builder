@@ -28,11 +28,16 @@ export default function DownloadButton({
 
   const captureCanvas = useCallback(async () => {
     if (!slideRef.current) return null;
-    return await html2canvas(slideRef.current, {
+    const el = slideRef.current;
+    return await html2canvas(el, {
       scale: 2,
       useCORS: true,
       allowTaint: false,
       backgroundColor: "#FFFFFF",
+      width: el.scrollWidth,
+      height: el.scrollHeight,
+      windowWidth: el.scrollWidth,
+      windowHeight: el.scrollHeight,
     });
   }, [slideRef]);
 
@@ -68,7 +73,7 @@ export default function DownloadButton({
       if (!canvas) return;
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({
-        orientation: "landscape",
+        orientation: canvas.height > canvas.width ? "portrait" : "landscape",
         unit: "px",
         format: [canvas.width, canvas.height],
       });

@@ -17,12 +17,15 @@ const SlideShell = forwardRef<HTMLDivElement, SlideShellProps>(
     return (
       <div
         ref={ref}
-        className="w-full rounded-2xl overflow-hidden border border-hairline"
-        style={{ aspectRatio: "16/9", maxWidth: 960, backgroundColor: bg }}
+        className="w-full rounded-2xl overflow-hidden border border-hairline flex flex-col [min-aspect-ratio:16/9]"
+        style={{
+          maxWidth: 960,
+          height: "auto",
+          backgroundColor: bg,
+        }}
       >
-        {/* Header bar */}
         <div
-          className="flex items-center justify-between px-6 py-3"
+          className="flex items-center justify-between px-6 py-3 flex-shrink-0"
           style={{ backgroundColor: bg }}
         >
           <div className="flex items-center gap-2.5">
@@ -43,14 +46,12 @@ const SlideShell = forwardRef<HTMLDivElement, SlideShellProps>(
           </span>
         </div>
 
-        {/* Ink bar */}
         <div
-          className="w-full"
+          className="w-full flex-shrink-0"
           style={{ height: 2, backgroundColor: "#0A0A0A" }}
         />
 
-        {/* Title */}
-        <div className="px-6 pt-4 pb-2">
+        <div className="px-6 pt-4 pb-2 flex-shrink-0">
           <h2
             className="text-lg font-bold tracking-tight"
             style={{ color: text }}
@@ -59,12 +60,10 @@ const SlideShell = forwardRef<HTMLDivElement, SlideShellProps>(
           </h2>
         </div>
 
-        {/* Content */}
-        <div className="px-6 pb-4">{children}</div>
+        <div className="px-6 pb-4 flex-1">{children}</div>
 
-        {/* Footer */}
         <div
-          className="px-6 py-2 flex justify-between items-center"
+          className="px-6 py-2 flex justify-between items-center flex-shrink-0"
           style={{ borderTop: "1px solid #E5E7EB" }}
         >
           <span

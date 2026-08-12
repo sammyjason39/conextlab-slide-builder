@@ -81,7 +81,7 @@ export default function MatrixPreview({ data, template }: MatrixPreviewProps) {
           <text x="6" y="235" textAnchor="start" fill={colors.muted} fontSize="8">Low</text>
 
           {/* Items as bubbles */}
-          {validItems.map((item) => {
+          {validItems.map((item, idx) => {
             const q = getQuadrant(item.impact, item.effort);
             const qc = quadrantColors[q];
             const x = (item.effort / 10) * 400;
@@ -98,10 +98,10 @@ export default function MatrixPreview({ data, template }: MatrixPreviewProps) {
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill={qc.text}
-                  fontSize={Math.max(7, Math.min(10, r - 4))}
+                  fontSize={Math.max(8, Math.min(11, r - 2))}
                   fontWeight="bold"
                 >
-                  {item.name.length > 12 ? item.name.slice(0, 10) + ".." : item.name}
+                  {idx + 1}
                 </text>
               </g>
             );
@@ -114,6 +114,31 @@ export default function MatrixPreview({ data, template }: MatrixPreviewProps) {
           )}
         </svg>
       </div>
+
+      {validItems.length > 0 && (
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+          {validItems.map((item, idx) => {
+            const q = getQuadrant(item.impact, item.effort);
+            const qc = quadrantColors[q];
+            return (
+              <div key={item.id} className="flex items-start gap-2 text-xs">
+                <span
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                  style={{ backgroundColor: qc.text, color: "#FFFFFF" }}
+                >
+                  {idx + 1}
+                </span>
+                <span className="break-words leading-snug" style={{ color: colors.text }}>
+                  {item.name}
+                  <span className="ml-1" style={{ color: colors.muted }}>
+                    ({qc.label})
+                  </span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -7,30 +7,6 @@ interface FiveWhyPreviewProps {
   template: TemplateConfig;
 }
 
-function wrapText(text: string, maxChars: number, maxLines: number): string[] {
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return [];
-  const lines: string[] = [];
-  let current = "";
-  for (const word of words) {
-    const next = current ? `${current} ${word}` : word;
-    if (!current || next.length <= maxChars) {
-      current = next;
-      continue;
-    }
-    lines.push(current);
-    current = word;
-  }
-  if (current) lines.push(current);
-  if (lines.length <= maxLines) return lines;
-  const kept = lines.slice(0, maxLines - 1);
-  const rest = lines.slice(maxLines - 1).join(" ");
-  kept.push(
-    rest.length > maxChars ? `${rest.slice(0, Math.max(1, maxChars - 1))}…` : rest
-  );
-  return kept;
-}
-
 function hexToRgba(hex: string, alpha: number): string {
   const h = hex.replace("#", "");
   if (h.length < 6) return hex;
@@ -70,34 +46,31 @@ export default function FiveWhyPreview({ data, template }: FiveWhyPreviewProps) 
 
   return (
     <div
-      className="w-full px-1 py-1 rounded-2xl"
+      className="w-full p-2 rounded-2xl"
       style={{
         backgroundColor: colors.background,
         borderRadius: template.borderRadius * 2,
         boxShadow: shadowStyle,
       }}
     >
-      <div className="flex items-stretch w-full gap-1">
+      <div className="flex flex-col items-stretch gap-0 max-w-2xl mx-auto">
         {filledWhys.map((why, idx) => {
           const isRoot = idx === filledWhys.length - 1 && filledWhys.length >= 2;
-          const questionLines = wrapText(why.question, 22, 2);
-          const answerLines = wrapText(why.answer, 22, 4);
-
           return (
-            <div key={why.id} className="flex items-stretch flex-1 min-w-0">
+            <div key={why.id} className="flex flex-col items-center">
               <div
-                className="flex-1 min-w-0 px-2 py-2 flex flex-col"
+                className="w-full p-3"
                 style={{
                   backgroundColor: isRoot
                     ? hexToRgba(colors.accent, 0.1)
-                    : hexToRgba(colors.border, 0.35),
+                    : "transparent",
                   border: `1.5px solid ${isRoot ? colors.accent : colors.border}`,
                   borderRadius: template.borderRadius,
                 }}
               >
-                <div className="flex items-center gap-1.5 mb-1.5">
+                <div className="flex items-center gap-2 mb-1.5">
                   <span
-                    className="w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center flex-shrink-0"
+                    className="w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center flex-shrink-0"
                     style={{
                       backgroundColor: isRoot ? colors.accent : colors.secondary,
                       color: "#FFFFFF",
@@ -106,45 +79,50 @@ export default function FiveWhyPreview({ data, template }: FiveWhyPreviewProps) 
                     {idx + 1}
                   </span>
                   <span
-                    className="text-[10px] font-bold uppercase tracking-wide"
+                    className="text-[11px] font-bold uppercase tracking-wide"
                     style={{ color: isRoot ? colors.accent : colors.muted }}
                   >
                     {isRoot ? "Root Cause" : `Why #${idx + 1}`}
                   </span>
                 </div>
-
-                {questionLines.map((line, li) => (
+                {why.question.trim() ? (
                   <p
-                    key={`q-${li}`}
-                    className="text-[10px] font-semibold leading-tight"
+                    className="text-xs font-semibold leading-snug break-words"
                     style={{ color: colors.text }}
                   >
-                    {line}
+                    {why.question}
                   </p>
-                ))}
-
-                {answerLines.map((line, li) => (
+                ) : null}
+                {why.answer.trim() ? (
                   <p
-                    key={`a-${li}`}
-                    className="text-[10px] leading-tight mt-0.5"
+                    className="text-xs leading-snug mt-1 break-words"
                     style={{ color: colors.muted }}
                   >
-                    {line}
+                    {why.answer}
                   </p>
-                ))}
+                ) : null}
               </div>
 
               {idx < filledWhys.length - 1 && (
-                <div className="flex items-center px-0.5 flex-shrink-0">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <path
-                      d="M2 7h8M8 3l4 4-4 4"
-                      stroke={colors.accent}
-                      strokeWidth="1.75"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                <div className="flex flex-col items-center py-1">
+                  <div
+                    style={{
+                      width: 2,
+                      height: 12,
+                      backgroundColor: colors.accent,
+                      opacity: 0.45,
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: 0,
+                      height: 0,
+                      borderLeft: "5px solid transparent",
+                      borderRight: "5px solid transparent",
+                      borderTop: `6px solid ${colors.accent}`,
+                      opacity: 0.45,
+                    }}
+                  />
                 </div>
               )}
             </div>

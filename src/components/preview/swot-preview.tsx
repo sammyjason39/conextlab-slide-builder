@@ -60,13 +60,7 @@ export default function SWOTPreview({ data, template, iconMode }: SWOTPreviewPro
         boxShadow: shadowStyle,
       }}
     >
-      <h3
-        className="text-center font-bold mb-4"
-        style={{ color: colors.text, fontSize: 16 }}
-      >
-        {data.title}
-      </h3>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 items-start">
         {quadrantConfig.map((q) => {
           const items = data[q.key].filter((s) => s.trim());
           return (
@@ -105,9 +99,7 @@ export default function SWOTPreview({ data, template, iconMode }: SWOTPreviewPro
                       style={{ color: colors.muted }}
                     >
                       <span className="mt-0.5 flex-shrink-0">•</span>
-                      <span>
-                        {item.length > 60 ? item.slice(0, 60) + "..." : item}
-                      </span>
+                      <span className="break-words">{item}</span>
                     </li>
                   ))}
                 </ul>
