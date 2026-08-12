@@ -43,30 +43,25 @@ function getContrastTextColor(bgHex: string): string {
   return luminance > 0.55 ? "#0A0A0A" : "#FFFFFF";
 }
 
-function wrapText(text: string, maxChars: number, maxLines: number): string[] {
+function wrapText(text: string, maxChars: number, maxLines = 6): string[] {
   const words = text.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
   const lines: string[] = [];
   let current = "";
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i];
+  for (const word of words) {
     const next = current ? `${current} ${word}` : word;
-    if (next.length <= maxChars) {
+    if (!current || next.length <= maxChars) {
       current = next;
       continue;
     }
-    if (current) lines.push(current);
-    if (lines.length === maxLines - 1) {
-      const rest = [word, ...words.slice(i + 1)].join(" ");
-      lines.push(
-        rest.length > maxChars ? `${rest.slice(0, maxChars - 1)}…` : rest
-      );
-      return lines;
-    }
-    current = word.length > maxChars ? `${word.slice(0, maxChars - 1)}…` : word;
+    lines.push(current);
+    current = word;
   }
   if (current) lines.push(current);
-  return lines.slice(0, maxLines);
+  if (lines.length <= maxLines) return lines;
+  const kept = lines.slice(0, maxLines - 1);
+  kept.push(lines.slice(maxLines - 1).join(" "));
+  return kept;
 }
 
 function elongatedHex(cx: number, cy: number, w: number, h: number): string {
@@ -100,9 +95,10 @@ export default function FishbonePreview({
   const width = 960;
   const height = 430;
   const spineY = height / 2;
-  const spineStartX = 70;
+  const spineStartX = 58;
   const spineEndX = width - 148;
-  const structure = template.chartStyle === "minimal" ? colors.secondary : "#4B5563";
+  const structure =
+    template.chartStyle === "minimal" ? colors.secondary : "#4B5563";
   const palette =
     template.chartStyle === "minimal" ? MINIMAL_PALETTE : CATEGORY_PALETTE;
   const lineW = Math.max(1.25, Math.min(template.lineWeight, 2.25));
@@ -118,10 +114,10 @@ export default function FishbonePreview({
 
   const hexXs = (count: number): number[] => {
     if (count <= 0) return [];
-    const left = 148;
-    const right = 612;
+    const left = 196;
+    const right = 640;
     if (count === 1) return [(left + right) / 2];
-    if (count === 2) return [210, 500];
+    if (count === 2) return [250, 540];
     return Array.from(
       { length: count },
       (_, i) => left + ((right - left) * i) / (count - 1)
@@ -130,24 +126,27 @@ export default function FishbonePreview({
 
   const topXs = hexXs(topCats.length || slotCount);
   const bottomXs = hexXs(bottomCats.length || slotCount);
-  const hexW = 136;
-  const hexH = 34;
-  const topHexY = 44;
-  const bottomHexY = height - 44;
-  const boneRun = 118;
+  const hexW = 128;
+  const hexH = 32;
+  const topHexY = 38;
+  const bottomHexY = height - 38;
+  const boneRun = 110;
+  const leftMargin = 10;
 
   const renderBone = (
     cat: (typeof categories)[number],
     hexX: number,
     hexY: number,
-    color: string
+    color: string,
+    side: "top" | "bottom"
   ) => {
     const attachX = hexX + hexW / 2 + boneRun * 0.55;
     const hexRightX = hexX + hexW / 2;
     const causes = cat.causes.map((c) => c.trim()).filter(Boolean);
-    const slots = Math.max(3, Math.min(causes.length, 4));
+    const slots = Math.max(causes.length, 1);
+    const shown = Math.min(Math.max(slots, causes.length ? 1 : 3), 4);
     const labelColor = getContrastTextColor(color);
-    const catLines = wrapText(cat.name, 16, 2);
+    const catLines = wrapText(cat.name, 14, 2);
 
     return (
       <g key={cat.id}>
@@ -160,19 +159,12 @@ export default function FishbonePreview({
           strokeWidth={lineW}
           strokeLinecap="round"
         />
-        <polygon
-          points={elongatedHex(hexX, hexY, hexW, hexH)}
-          fill={color}
-        />
+        <polygon points={elongatedHex(hexX, hexY, hexW, hexH)} fill={color} />
         {catLines.map((line, li) => (
           <text
             key={li}
             x={hexX}
-            y={
-              hexY +
-              (li - (catLines.length - 1) / 2) * 11 +
-              4
-            }
+            y={hexY + (li - (catLines.length - 1) / 2) * 11 + 4}
             textAnchor="middle"
             fill={labelColor}
             fontSize={11}
@@ -181,14 +173,24 @@ export default function FishbonePreview({
             {escapeXml(line)}
           </text>
         ))}
-        {Array.from({ length: slots }).map((_, ci) => {
-          const t = (ci + 1) / (slots + 1);
+        {Array.from({ length: shown }).map((_, ci) => {
+          const t = (ci + 1) / (shown + 1);
           const px = hexRightX + (attachX - hexRightX) * t;
           const py = hexY + (spineY - hexY) * t;
           const cause = causes[ci] || "";
-          const lineLen = 92;
-          const text =
-            cause.length > 28 ? `${cause.slice(0, 27)}…` : cause;
+          const available = Math.max(80, px - leftMargin - 12);
+          const charW = 5.15;
+          const maxChars = Math.max(16, Math.floor(available / charW));
+          const lines = cause ? wrapText(cause, maxChars, 3) : [];
+          const lineLen = Math.min(
+            available,
+            Math.max(88, (lines[0]?.length || 12) * charW + 8)
+          );
+          const lineHeight = 10.5;
+          const blockH = Math.max(0, (lines.length - 1) * lineHeight);
+          const textStartY =
+            side === "top" ? py - 7 - blockH : py + 13;
+
           return (
             <g key={`${cat.id}-c-${ci}`}>
               <line
@@ -206,17 +208,18 @@ export default function FishbonePreview({
                 stroke={colors.background}
                 strokeWidth={1}
               />
-              {text ? (
+              {lines.map((line, li) => (
                 <text
-                  x={px - 10}
-                  y={py - 6}
+                  key={li}
+                  x={px - 9}
+                  y={textStartY + li * lineHeight}
                   textAnchor="end"
                   fill={colors.text}
-                  fontSize={10}
+                  fontSize={9.5}
                 >
-                  {escapeXml(text)}
+                  {escapeXml(line)}
                 </text>
-              ) : null}
+              ))}
             </g>
           );
         })}
@@ -239,13 +242,11 @@ export default function FishbonePreview({
         rx={template.borderRadius * 2}
       />
 
-      {/* Tail */}
       <polygon
-        points={`${spineStartX},${spineY} 22,${spineY - 34} 10,${spineY} 22,${spineY + 34}`}
+        points={`${spineStartX},${spineY} 18,${spineY - 32} 8,${spineY} 18,${spineY + 32}`}
         fill={structure}
       />
 
-      {/* Spine */}
       <line
         x1={spineStartX}
         y1={spineY}
@@ -257,18 +258,24 @@ export default function FishbonePreview({
       />
 
       {topCats.map((cat, i) =>
-        renderBone(cat, topXs[i] ?? topXs[0], topHexY, palette[i % palette.length])
+        renderBone(
+          cat,
+          topXs[i] ?? topXs[0],
+          topHexY,
+          palette[i % palette.length],
+          "top"
+        )
       )}
       {bottomCats.map((cat, i) =>
         renderBone(
           cat,
           bottomXs[i] ?? bottomXs[0],
           bottomHexY,
-          palette[(mid + i) % palette.length]
+          palette[(mid + i) % palette.length],
+          "bottom"
         )
       )}
 
-      {/* Head */}
       <path
         d={`M ${spineEndX} ${spineY - 7}
             L ${spineEndX + 18} ${spineY - 48}

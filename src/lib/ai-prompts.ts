@@ -21,7 +21,11 @@ Extract data for a Fishbone (Ishikawa) diagram. The JSON must match this schema:
 
 Default categories are the 6Ms: Man, Machine, Method, Material, Measurement, Environment. If the text doesn't mention specific categories, use these defaults. Include up to 6 categories.
 If you cannot determine the problem statement, use the most prominent issue mentioned in the text.
-Always include at least one category with at least one cause.`;
+Always include at least one category with at least one cause.
+Keep the problemStatement under 80 characters.
+Each cause MUST be a short punchy phrase, maximum 42 characters, no full sentences.
+Good: "Operator baru belum training". Bad: "Beberapa operator baru belum selesai training SOP dan masih sering salah."
+Use 2-3 causes per category, not more.`;
 
     case "pareto":
       return `${base}
