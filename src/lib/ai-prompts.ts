@@ -78,7 +78,11 @@ Extract data for a 5-Why root cause analysis. The JSON must match this schema:
 
 Generate exactly 5 why levels. Each level asks "Why?" about the previous answer.
 The first why asks about the problem statement. The last answer should reveal the root cause.
-If the text doesn't provide all 5 levels, infer reasonable follow-up questions and answers.`;
+If the text doesn't provide all 5 levels, infer reasonable follow-up questions and answers.
+Keep problemStatement under 80 characters.
+Keep each question under 60 characters.
+Keep each answer under 80 characters, one short sentence starting with "Because".
+Do not write long explanations. Punchy training-slide wording only.`;
 
     case "scurve":
       return `${base}
